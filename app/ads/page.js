@@ -20,18 +20,20 @@ function copyText(t) {
 }
 
 export default function AdsPage() {
-    const { project: C, generated } = useProject();
+    const { project: C, generated, geminiKey } = useProject();
     const { hooks, heads, prims, ctas, combos } = generated;
     const [tab, setTab] = useState('hooks');
     const [angle, setAngle] = useState('all');
     const [adSize, setAdSize] = useState('all');
     const [adAngle, setAdAngle] = useState('all');
+    const [imageAds, setImageAds] = useState([]);
+    const [isGeneratingImg, setIsGeneratingImg] = useState(false);
 
     const tabs = [
         { k: 'hooks', l: 'Hooks' }, { k: 'headlines', l: 'Headlines' },
         { k: 'primary', l: 'Primary Texts' }, { k: 'ctas', l: 'CTAs' },
-        { k: 'html', l: 'HTML Ads' }, { k: 'combos', l: 'Combinations' },
-        { k: 'stories', l: 'Storyboards' }
+        { k: 'html', l: 'HTML Ads' }, { k: 'image-ads', l: 'Image Ads' },
+        { k: 'combos', l: 'Combinations' }, { k: 'stories', l: 'Storyboards' }
     ];
 
     const filteredHooks = angle === 'all' ? hooks : hooks.filter(h => h.a === angle);
@@ -142,9 +144,6 @@ export default function AdsPage() {
                     <div className="filter-group"><span className="filter-label">Size</span>
                         {['all', 'square', 'vertical'].map(s => <button key={s} className={`f-pill ${adSize === s ? 'active' : ''}`} onClick={() => setAdSize(s)}>{s === 'all' ? 'All' : s === 'square' ? '1:1 Square' : '4:5 Vertical'}</button>)}
                     </div>
-                    <div className="filter-group"><span className="filter-label">Angle</span>
-                        {['all', ...ANGLES].map(a => <button key={a} className={`f-pill ${adAngle === a ? 'active' : ''}`} onClick={() => setAdAngle(a)}>{a === 'all' ? 'All' : AL[a]}</button>)}
-                    </div>
                 </div>
                 <div className="ad-grid">{htmlAds.map((a, i) => (
                     <div key={i} className={`ad-frame ${a.style} ${a.vert ? 'vertical' : ''}`}>
@@ -156,6 +155,63 @@ export default function AdsPage() {
                     </div>
                 ))}</div>
             </>)}
+
+            {tab === 'image-ads' && (
+                <div className="view-content" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div className="dash-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <h3 style={{ margin: '0 0 5px 0', fontSize: '1.2rem', color: 'white' }}>Nano Banana Image Generation</h3>
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-2)' }}>Powered by Gemini 3.1 Flash Image API</p>
+                        </div>
+                        <button
+                            className="btn-generate"
+                            style={{ width: 'auto', padding: '10px 24px', opacity: isGeneratingImg ? 0.7 : 1 }}
+                            disabled={isGeneratingImg}
+                            onClick={async () => {
+                                if (!geminiKey) return alert("Please save your Nano Banana (Gemini) API Key in Settings first!");
+                                setIsGeneratingImg(true);
+                                try {
+                                    const prompt = `A highly professional, modern digital marketing ad image for the product "${C.product}" by company "${C.company}". The audience is "${C.audience}". The solution solves: "${C.old}" by offering "${C.solution}". Do NOT include text. High resolution, 4k, photorealistic.`;
+                                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${geminiKey}`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            contents: { role: 'user', parts: [{ text: prompt }] },
+                                            generationConfig: { responseModalities: ["IMAGE"] }
+                                        })
+                                    });
+                                    const data = await res.json();
+                                    if (data.error) throw new Error(data.error.message);
+                                    const b64 = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+                                    if (b64) setImageAds(prev => [`data:image/jpeg;base64,${b64}`, ...prev]);
+                                    else throw new Error("No image data returned from API.");
+                                } catch (e) {
+                                    alert("API Error: " + e.message);
+                                }
+                                setIsGeneratingImg(false);
+                            }}
+                        >
+                            {isGeneratingImg ? '✨ Generating...' : '✨ Generate New Image'}
+                        </button>
+                    </div>
+
+                    {imageAds.length === 0 && !isGeneratingImg && (
+                        <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-3)', border: '1px dashed var(--border-1)', borderRadius: '12px' }}>
+                            No images generated yet. Click the button above to create an ad visual using AI.
+                        </div>
+                    )}
+
+                    <div className="gallery-grid">
+                        {imageAds.map((img, i) => (
+                            <div key={i} className="gallery-item" style={{ animation: 'cardIn .3s ease both' }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={img} alt="Generated Ad Image" loading="lazy" />
+                                <div className="gallery-label">Generated Variant #{imageAds.length - i}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {tab === 'combos' && (
                 <div className="table-wrap"><table className="c-table"><thead><tr><th>Ad</th><th>Campaign</th><th>Hook</th><th>Headline</th><th>Primary</th><th>CTA</th><th>Angle</th></tr></thead>
