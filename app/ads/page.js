@@ -173,31 +173,60 @@ export default function AdsPage() {
                                 try {
                                     const prompt = `A highly professional, modern digital marketing ad image for the product "${C.product}" by company "${C.company}". The audience is "${C.audience}". The solution solves: "${C.old}" by offering "${C.solution}". Do NOT include text. High resolution, 4k, photorealistic.`;
 
-                                    // Generate 15 images concurrently using standard proxy formatting
-                                    const promises = Array.from({ length: 15 }).map(async (_, idx) => {
-                                        const res = await fetch(`https://api.nanobananaapi.ai/v1/images/generations`, {
+                                    // 1. Dispatch 15 create task requests
+                                    const taskPromises = Array.from({ length: 15 }).map(async (_, idx) => {
+                                        const res = await fetch(`https://api.nanobananaapi.ai/api/v1/nanobanana/generate-pro`, {
                                             method: 'POST',
                                             headers: {
                                                 'Content-Type': 'application/json',
                                                 'Authorization': `Bearer ${geminiKey}`
                                             },
                                             body: JSON.stringify({
-                                                model: 'gemini-3.1-flash', // adjust if they require a specific model string
-                                                prompt: prompt + ` (Style Variation ${idx + 1})`,
-                                                n: 1,
-                                                response_format: 'b64_json'
+                                                prompt: prompt + ` (Variation ${idx + 1})`,
+                                                imageUrls: [""],
+                                                resolution: "2K",
+                                                callBackUrl: "",
+                                                aspectRatio: "16:9"
                                             })
                                         });
-                                        const data = await res.json();
-                                        if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-
-                                        const b64 = data.data?.[0]?.b64_json || data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-                                        if (b64) return `data:image/jpeg;base64,${b64}`;
-                                        throw new Error("No image data natively returned from API. Check format.");
+                                        const d = await res.json();
+                                        if (d.code !== 200) throw new Error(d.message || "Failed to create task");
+                                        return d.data?.taskId;
                                     });
 
-                                    const newImages = await Promise.all(promises);
-                                    setImageAds(prev => [...newImages, ...prev]);
+                                    let taskIds = await Promise.all(taskPromises);
+                                    taskIds = taskIds.filter(Boolean);
+                                    if (taskIds.length === 0) throw new Error("No tasks were created.");
+
+                                    // 2. Poll for results continuously until all succeed or fail
+                                    let pendingTasks = [...taskIds];
+
+                                    while (pendingTasks.length > 0) {
+                                        await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3s between polls
+
+                                        const newPending = [];
+                                        for (const taskId of pendingTasks) {
+                                            try {
+                                                const statusRes = await fetch(`https://api.nanobananaapi.ai/api/v1/nanobanana/record-info?taskId=${taskId}`, {
+                                                    headers: { 'Authorization': `Bearer ${geminiKey}` }
+                                                });
+                                                const st = await statusRes.json();
+
+                                                if (st.data?.successFlag === 1) {
+                                                    const imgUrl = st.data?.response?.resultImageUrl || st.data?.response?.originImageUrl;
+                                                    if (imgUrl) setImageAds(prev => [imgUrl, ...prev]);
+                                                } else if (st.data?.successFlag === 0) {
+                                                    newPending.push(taskId); // Still generating
+                                                } else {
+                                                    console.error(`Task ${taskId} failed:`, st.data?.errorMessage);
+                                                }
+                                            } catch (err) {
+                                                console.error("Polling error for", taskId, err);
+                                                newPending.push(taskId); // Retry next loop
+                                            }
+                                        }
+                                        pendingTasks = newPending;
+                                    }
                                 } catch (e) {
                                     alert("API Error: " + e.message);
                                 }
