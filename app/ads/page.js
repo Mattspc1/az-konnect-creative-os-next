@@ -171,10 +171,10 @@ export default function AdsPage() {
                                 if (!geminiKey) return alert("Please save your Nano Banana (Gemini) API Key in Settings first!");
                                 setIsGeneratingImg(true);
                                 try {
-                                    const prompt = `A highly professional, modern digital marketing ad image for the product "${C.product}" by company "${C.company}". The audience is "${C.audience}". The solution solves: "${C.old}" by offering "${C.solution}". Do NOT include text. High resolution, 4k, photorealistic.`;
+                                    const basePrompt = `A highly professional, modern digital marketing ad image for the product "${C.product}" by company "${C.company}". The audience is "${C.audience}". The solution solves: "${C.old}" by offering "${C.solution}". Do NOT include text. High resolution, 4k, photorealistic.`;
 
-                                    // 1. Dispatch 15 create task requests
-                                    const taskPromises = Array.from({ length: 15 }).map(async (_, idx) => {
+                                    // 1. Dispatch 15 create task requests using the exact visual instructions defined originally
+                                    const taskPromises = generated.imagePrompts.slice(0, 15).map(async (instructionItem, idx) => {
                                         const res = await fetch(`https://api.nanobananaapi.ai/api/v1/nanobanana/generate-pro`, {
                                             method: 'POST',
                                             headers: {
@@ -182,7 +182,7 @@ export default function AdsPage() {
                                                 'Authorization': `Bearer ${geminiKey}`
                                             },
                                             body: JSON.stringify({
-                                                prompt: prompt + ` (Variation ${idx + 1})`,
+                                                prompt: basePrompt + ` Visual Style Constraint: ` + instructionItem.v,
                                                 imageUrls: [""],
                                                 resolution: "2K",
                                                 callBackUrl: "",
