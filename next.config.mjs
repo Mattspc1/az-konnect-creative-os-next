@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // No basePath needed for subdomain deployments (e.g. creative-os.azkonnect.net)
+  output: 'export',
 };
 
 export default nextConfig;
