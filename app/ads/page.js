@@ -20,7 +20,7 @@ function copyText(t) {
 }
 
 export default function AdsPage() {
-    const { project: C, generated, geminiKey } = useProject();
+    const { project: C, generated, geminiKey, generateWithAIEngine, isAiGenerating } = useProject();
     const { hooks, heads, prims, ctas, combos } = generated;
     const [tab, setTab] = useState('hooks');
     const [angle, setAngle] = useState('all');
@@ -91,7 +91,17 @@ export default function AdsPage() {
 
     return (
         <div className="view active">
-            <div className="view-header"><h2>Ads Creative</h2><p>{C.company} — {C.product}</p></div>
+            <div className="view-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div><h2>Ads Creative</h2><p>{C.company} — {C.product}</p></div>
+                <button
+                    className="btn-generate"
+                    onClick={() => generateWithAIEngine(C).catch(err => alert(err.message))}
+                    disabled={isAiGenerating}
+                    style={{ background: 'var(--brand-default)', opacity: isAiGenerating ? 0.7 : 1, width: 'auto', padding: '10px 20px', borderRadius: '8px' }}
+                >
+                    {isAiGenerating ? '🧠 Strategizing...' : '✨ AI Generate Strategy'}
+                </button>
+            </div>
             <div className="filter-bar">
                 {tabs.map(t => <button key={t.k} className={`f-pill ${tab === t.k ? 'active' : ''}`} onClick={() => { setTab(t.k); setAngle('all'); }}>{t.l}</button>)}
             </div>

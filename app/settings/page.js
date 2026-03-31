@@ -3,10 +3,14 @@ import { useState, useEffect } from 'react';
 import { useProject } from '@/lib/context';
 
 export default function SettingsPage() {
-    const { factoryReset, geminiKey, saveGeminiKey } = useProject();
+    const { factoryReset, geminiKey, saveGeminiKey, openAiKey, saveOpenAiKey } = useProject();
     const [keyInput, setKeyInput] = useState('');
+    const [openAiKeyInput, setOpenAiKeyInput] = useState('');
 
-    useEffect(() => { setKeyInput(geminiKey); }, [geminiKey]);
+    useEffect(() => {
+        setKeyInput(geminiKey);
+        setOpenAiKeyInput(openAiKey);
+    }, [geminiKey, openAiKey]);
 
     const handleReset = () => {
         factoryReset();
@@ -29,6 +33,18 @@ export default function SettingsPage() {
                 </div>
                 <div className="bk-card"><h3>Integrations</h3>
                     <div className="bk-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>OpenAI API Key (Text & Copywriting Engine)</p>
+                        <input
+                            type="password"
+                            style={{ width: '100%', background: 'var(--bg-card)', border: '1px solid var(--border-1)', color: 'white', padding: '10px 14px', borderRadius: '6px' }}
+                            placeholder="sk-proj-..."
+                            value={openAiKeyInput}
+                            onChange={(e) => setOpenAiKeyInput(e.target.value)}
+                        />
+                        <button className="btn-generate" style={{ background: 'var(--brand-default)' }} onClick={() => { saveOpenAiKey(openAiKeyInput); alert('OpenAI Key Saved!'); }}>Save OpenAI Key</button>
+                    </div>
+
+                    <div className="bk-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '8px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-1)' }}>
                         <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>Gemini API Key (Nano Banana Image Engine)</p>
                         <input
                             type="password"
@@ -37,7 +53,7 @@ export default function SettingsPage() {
                             value={keyInput}
                             onChange={(e) => setKeyInput(e.target.value)}
                         />
-                        <button className="btn-generate" style={{ background: 'var(--brand-default)' }} onClick={handleSaveKey}>Save API Key</button>
+                        <button className="btn-generate" style={{ background: 'var(--brand-default)' }} onClick={handleSaveKey}>Save Gemini Key</button>
                     </div>
                 </div>
                 <div className="bk-card"><h3>Data Reset</h3>
