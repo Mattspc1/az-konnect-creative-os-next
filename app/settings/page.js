@@ -5,10 +5,8 @@ export default function SettingsPage() {
     const { factoryReset } = useProject();
 
     const handleReset = () => {
-        if (confirm('Are you sure you want to completely wipe all app data? This action cannot be undone.')) {
-            factoryReset();
-            window.location.href = '/';
-        }
+        factoryReset();
+        window.location.reload();
     };
 
     return (

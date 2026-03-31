@@ -28,7 +28,7 @@ export default function CreateProjectModal({ open, onClose }) {
             niche: (document.getElementById('in-audience')?.value || '').replace(/s$/, '').replace(/^.*\s/, ''),
         };
         generate(vals);
-        setTimeout(() => saveProject(), 100);
+        saveProject(vals);
         onClose();
         router.push(mode === 'ads' ? '/ads' : '/content');
     };
