@@ -8,7 +8,7 @@ export default function LibraryPage() {
             <div className="gallery-grid">
                 {imgs.map((img, i) => (
                     <div key={i} className="gallery-item">
-                        <img src={`/creative-os/assets/${img.f}`} alt={img.l} loading="lazy" onError={(e) => { e.target.style.display = 'none' }} />
+                        <img src={`/assets/${img.f}`} alt={img.l} loading="lazy" onError={(e) => { e.target.style.display = 'none' }} />
                         <div className="gallery-label">{img.l}</div>
                     </div>
                 ))}
