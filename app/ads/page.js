@@ -172,19 +172,32 @@ export default function AdsPage() {
                                 setIsGeneratingImg(true);
                                 try {
                                     const prompt = `A highly professional, modern digital marketing ad image for the product "${C.product}" by company "${C.company}". The audience is "${C.audience}". The solution solves: "${C.old}" by offering "${C.solution}". Do NOT include text. High resolution, 4k, photorealistic.`;
-                                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${geminiKey}`, {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({
-                                            contents: { role: 'user', parts: [{ text: prompt }] },
-                                            generationConfig: { responseModalities: ["IMAGE"] }
-                                        })
+
+                                    // Generate 15 images concurrently using standard proxy formatting
+                                    const promises = Array.from({ length: 15 }).map(async (_, idx) => {
+                                        const res = await fetch(`https://api.nanobananaapi.ai/v1/images/generations`, {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'Authorization': `Bearer ${geminiKey}`
+                                            },
+                                            body: JSON.stringify({
+                                                model: 'gemini-3.1-flash', // adjust if they require a specific model string
+                                                prompt: prompt + ` (Style Variation ${idx + 1})`,
+                                                n: 1,
+                                                response_format: 'b64_json'
+                                            })
+                                        });
+                                        const data = await res.json();
+                                        if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+
+                                        const b64 = data.data?.[0]?.b64_json || data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+                                        if (b64) return `data:image/jpeg;base64,${b64}`;
+                                        throw new Error("No image data natively returned from API. Check format.");
                                     });
-                                    const data = await res.json();
-                                    if (data.error) throw new Error(data.error.message);
-                                    const b64 = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-                                    if (b64) setImageAds(prev => [`data:image/jpeg;base64,${b64}`, ...prev]);
-                                    else throw new Error("No image data returned from API.");
+
+                                    const newImages = await Promise.all(promises);
+                                    setImageAds(prev => [...newImages, ...prev]);
                                 } catch (e) {
                                     alert("API Error: " + e.message);
                                 }
